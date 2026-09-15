@@ -1,0 +1,525 @@
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>VisionAI - 1,000+ Real-Time Object Detection</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+
+    <!-- COCO-SSD Object Detection Model -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+
+    <!-- MobileNet Deep Object Classifier (1,000 Classes) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet"></script>
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <div class="logo">
+            <span>👁️</span>
+            <h2>VisionAI</h2>
+        </div>
+
+        <nav>
+
+            <a class="active" id="navDashboard" href="#">
+                📊 Dashboard
+            </a>
+
+            <a id="navCamera" href="#video">
+                📷 Live Camera
+            </a>
+
+            <a id="navDetections" href="javascript:void(0)">
+                🎯 All 1,000+ Objects
+            </a>
+
+            <a id="navHistory" href="#history">
+                🕒 History
+            </a>
+
+        </nav>
+
+        <div class="system">
+
+            <span class="online-dot"></span>
+
+            <div>
+                <small>AI System</small>
+                <strong id="modelStatus">
+                    Loading...
+                </strong>
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <!-- MAIN -->
+
+    <main class="main">
+
+        <header class="topbar">
+
+            <div>
+
+                <h1>
+                    1,000+ Real-Time Object Detection
+                </h1>
+
+                <p>
+                    Dual-Engine AI: COCO-SSD (80 Boxes) + MobileNet (1,000 Classes)
+                </p>
+
+            </div>
+
+            <button
+                id="startBtn"
+                class="start-btn">
+
+                ▶ Start Camera
+
+            </button>
+
+        </header>
+
+
+        <!-- STATISTICS -->
+
+        <section class="stats">
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    📷
+                </div>
+
+                <div>
+
+                    <small>
+                        Camera
+                    </small>
+
+                    <h2 id="cameraStatus">
+                        Offline
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    🎯
+                </div>
+
+                <div>
+
+                    <small>
+                        Objects Detected
+                    </small>
+
+                    <h2 id="objectCount">
+                        0
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    👤
+                </div>
+
+                <div>
+
+                    <small>
+                        People
+                    </small>
+
+                    <h2 id="personCount">
+                        0
+                    </h2>
+
+                </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+                <div class="stat-icon">
+                    🧠
+                </div>
+
+                <div>
+
+                    <small>
+                        AI Confidence
+                    </small>
+
+                    <h2 id="confidence">
+                        0%
+                    </h2>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+          <!-- CONTROLS & FILTER BAR -->
+        <section class="controls-bar">
+
+            <div class="control-group">
+                <label for="aiMode">⚡ AI Mode:</label>
+                <select id="aiMode" class="filter-select">
+                    <option value="dual">⚡ Dual Engine (80 Boxes + 1,000 Scanner)</option>
+                    <option value="detector">🎯 Bounding Boxes Only (80 COCO Classes)</option>
+                    <option value="classifier">🧠 Deep Scanner Only (1,000 Classes)</option>
+                </select>
+            </div>
+
+            <button id="toggleReticleBtn" class="btn-toggle active" title="Toggle Center Target Reticle">
+                🎯 Target Scanner: ON
+            </button>
+
+            <div class="control-group">
+                <label for="categoryFilter">🔍 Category:</label>
+                <select id="categoryFilter" class="filter-select">
+                    <option value="all">🌐 All 1,000+ Objects</option>
+                    <option value="person">👤 People (COCO)</option>
+                    <option value="electronics">💻 Electronics & Tech</option>
+                    <option value="tools">🖊️ Office & Tools</option>
+                    <option value="apparel">👔 Apparel & Watches</option>
+                    <option value="household">🪑 Household & Furniture</option>
+                    <option value="food">🍕 Food & Kitchen</option>
+                    <option value="vehicles">🚗 Vehicles & Transport</option>
+                    <option value="animals">🐾 Animals & Pets</option>
+                    <option value="sports">⚽ Sports Equipment</option>
+                    <option value="music">🎸 Musical Instruments</option>
+                </select>
+            </div>
+
+            <div class="control-group slider-group">
+                <label for="confidenceThreshold">
+                    🎯 Sensitivity: <strong id="confidenceVal">30%</strong>
+                </label>
+                <input
+                    type="range"
+                    id="confidenceThreshold"
+                    min="15"
+                    max="90"
+                    value="30"
+                    step="5">
+            </div>
+
+            <button id="viewAllObjectsBtn" class="btn-secondary">
+                📋 All 1,000+ Objects
+            </button>
+
+        </section>
+
+
+        <!-- CAMERA + OBJECT LIST + DEEP RECOGNITION -->
+        <section class="dashboard">
+
+
+            <!-- CAMERA -->
+            <div class="camera-panel">
+
+                <div class="panel-header">
+
+                    <h2>
+                        Live Camera
+                    </h2>
+
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <span id="scanBadge" class="badge online">🎯 1,000+ SCANNER</span>
+                        <span id="liveStatus" class="badge offline">● OFFLINE</span>
+                    </div>
+
+                </div>
+
+
+                <div class="camera-container" id="cameraContainer">
+
+                    <video
+                        id="video"
+                        autoplay
+                        muted
+                        playsinline>
+                    </video>
+
+
+                    <canvas
+                        id="canvas">
+                    </canvas>
+
+
+                    <!-- CENTER TARGET SCANNER RETICLE -->
+                    <div id="reticle" class="target-reticle">
+                        <div class="reticle-bracket top-left"></div>
+                        <div class="reticle-bracket top-right"></div>
+                        <div class="reticle-bracket bottom-left"></div>
+                        <div class="reticle-bracket bottom-right"></div>
+                        <div class="reticle-center-dot"></div>
+                        <div id="reticleTag" class="reticle-tag">🎯 Aim at any object</div>
+                    </div>
+
+
+                    <div
+                        id="message"
+                        class="camera-message">
+
+                        <div>
+                            📷
+                        </div>
+
+                        <h3>
+                            Camera Offline
+                        </h3>
+
+                        <p>
+                            Click Start Camera to begin 1,000+ object recognition
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="controls">
+
+                    <button
+                        id="captureBtn"
+                        disabled>
+
+                        📸 Capture
+
+                    </button>
+
+
+                    <button
+                        id="stopBtn"
+                        disabled>
+
+                        ⏹ Stop
+
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- OBJECT LIST & DEEP RECOGNITION SIDEBAR -->
+            <div class="side-panels">
+
+                <!-- DEEP OBJECT RECOGNIZER (1,000 CLASSES) -->
+                <div class="deep-panel">
+
+                    <div class="panel-header">
+
+                        <div>
+                            <h2>🧠 1,000-Object Recognizer</h2>
+                            <small style="color: #64748b;">ImageNet Deep Neural Network</small>
+                        </div>
+
+                        <span id="deepStatus" class="badge online">● ACTIVE</span>
+
+                    </div>
+
+                    <div class="deep-target-card">
+                        <small>Target Object in Center:</small>
+                        <div id="primaryIdentified" class="target-name">
+                            <span>🔍</span> Ready to scan
+                        </div>
+                    </div>
+
+                    <div class="panel-subtitle">Top Real-Time Predictions:</div>
+
+                    <div id="deepPredictions" class="deep-predictions">
+
+                        <div class="empty-small">
+                            <p>Hold any object in view (pen, watch, glasses, mug, etc.)</p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- DETECTED BOUNDING BOX OBJECTS -->
+                <div class="objects-panel">
+
+                    <div class="panel-header">
+
+                        <h2>
+                            Spatial Detections (Boxes)
+                        </h2>
+
+                        <span
+                            id="objectBadge"
+                            class="count-badge">
+
+                            0
+
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        id="objectList"
+                        class="object-list">
+
+                        <div class="empty">
+
+                            <div>
+                                🔍
+                            </div>
+
+                            <p>
+                                No bounding boxes detected
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- HISTORY -->
+
+        <section class="history-panel">
+
+            <div class="panel-header">
+
+                <h2>
+                    Detection History
+                </h2>
+
+                <button
+                    id="clearBtn">
+
+                    Clear
+
+                </button>
+
+            </div>
+
+
+            <div class="table-wrapper">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Time
+                            </th>
+
+                            <th>
+                                Object
+                            </th>
+
+                            <th>
+                                Confidence
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="history">
+
+                        <tr>
+
+                            <td
+                                colspan="3"
+                                class="empty">
+
+                                No detection history
+
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<!-- ALL 1,000+ DETECTABLE OBJECTS MODAL -->
+<div id="objectsModal" class="modal-overlay hidden">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div>
+                <h2>📋 All 1,000+ Detectable Objects</h2>
+                <p>Comprehensive library of 1,000+ objects recognized across COCO-SSD & MobileNet AI models</p>
+            </div>
+            <button id="closeModalBtn" class="close-btn" title="Close modal">&times;</button>
+        </div>
+
+        <div class="modal-tools">
+            <input
+                type="text"
+                id="modalSearchInput"
+                class="modal-search-input"
+                placeholder="🔍 Search 1,000+ objects (e.g., pen, watch, glasses, mug, guitar, shoe, laptop, dog)...">
+            <div id="modalCategoryPills" class="category-pills">
+                <!-- Populated via script.js -->
+            </div>
+        </div>
+
+        <div id="allObjectsGrid" class="objects-grid">
+            <!-- Populated via script.js -->
+        </div>
+
+        <div class="modal-footer">
+            <span id="modalObjectCount">Showing 80 / 80 objects</span>
+            <button id="closeModalFooterBtn" class="btn-secondary">Close</button>
+        </div>
+    </div>
+</div>
+
+
+<script src="script.js"></script>
+
+</body>
+</html>
